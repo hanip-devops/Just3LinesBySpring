@@ -71,6 +71,9 @@ jobs:
           username: ${{secrets.NCP_USERNAME}}
           key: ${{secrets.NCP_PRIVATEKEY}}
           script: |
+            
+            cd /home/root
+            echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" > .env
             sudo docker login -u ${{ secrets.DOCKERHUB_ID }} -p ${{ secrets.DOCKERHUB_PASSWORD }}
             sudo docker pull ${{secrets.DOCKERHUB_ID}}/just3lines
             sudo docker rm -f $(docker ps -qa) 2>/dev/null || true

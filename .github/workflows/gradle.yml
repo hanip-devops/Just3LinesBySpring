@@ -7,72 +7,73 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    
+
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up JDK 17
-      uses: actions/setup-java@v3
-      with:
-        java-version: '17'
-        distribution: 'temurin'
-    
-    - name: Copy application.yml into runner
-      run: |
-        touch ./Just3Lines/src/main/resources/application.yml
-        echo "${{secrets.APPLICATION_YML}}" > ./Just3Lines/src/main/resources/application.yml
-    
-    - name: Grant Execute Permission For Gradlew & Build gradle
-      run: |
-        cd ./Just3Lines
-        chmod +x gradlew
-        ./gradlew build
-    
-    - name: Docker hub login
-      uses: docker/login-action@v3
-      with:
-        username: ${{ secrets.DOCKERHUB_ID }}
-        password: ${{ secrets.DOCKERHUB_PASSWORD }}
-    
-    - name: Docker image build
-      run: |
-        cd ./Just3Lines
-        docker build -t ${{secrets.DOCKERHUB_ID}}/Just3Lines .
-    
-    - name: Docker Hub push
-      run: docker push ${{secrets.DOCKERHUB_ID}}/Just3Lines
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      # [수정 1] 경로에서 Just3Lines 제거 및 mkdir -p 추가
+      - name: Create application.yml
+        run: |
+          mkdir -p ./src/main/resources
+          echo "${{secrets.APPLICATION_YML}}" > ./src/main/resources/application.yml
+
+      # [수정 2] 불필요한 cd 제거. checkout 후 이미 레포지토리 루트임
+      - name: Grant Execute Permission For Gradlew & Build gradle
+        run: |
+          chmod +x gradlew
+          ./gradlew build
+
+      - name: Docker hub login
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_ID }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+
+      # [수정 3] 불필요한 cd 제거
+      - name: Docker image build
+        run: docker build -t ${{secrets.DOCKERHUB_ID}}/Just3Lines .
+
+      - name: Docker Hub push
+        run: docker push ${{secrets.DOCKERHUB_ID}}/Just3Lines
 
   deploy:
     runs-on: ubuntu-latest
     permissions:
-      write-all
+      write-all # 이 권한은 이제 필요 없을 수 있습니다.
     needs: build
-    
+
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Copy docker-compose into NCP instance
-      uses: appleboy/scp-action@master
-      with:
-        host: ${{secrets.NCP_HOST}}
-        username: ${{secrets.NCP_USERNAME}}
-        key: ${{secrets.NCP_PRIVATEKEY}}
-        source: "./Just3Lines/docker-compose.yml"
-        target: "/home/${{secrets.NCP_USERNAME}}"
-        strip_components: 3
-        overwrite: true
-        debug: true
-    
-    - name: Deploy to NCP Instance
-      uses: appleboy/ssh-action@master
-      with:
-        host: ${{secrets.NCP_HOST}}
-        username: ${{secrets.NCP_USERNAME}}
-        key: ${{secrets.NCP_PRIVATEKEY}}
-        script: |
-          sudo docker login -u ${{ secrets.DOCKERHUB_ID }} -p ${{ secrets.DOCKERHUB_PASSWORD }}
-          sudo docker pull ${{secrets.DOCKERHUB_ID}}/Just3Lines
-          sudo docker rm -f $(docker ps -qa) 2>/dev/null || true
-          cd /home/${{secrets.NCP_USERNAME}}
-          sudo docker-compose up -d
-          sudo docker image prune -f
+      - uses: actions/checkout@v4
+
+      # [수정 4] source 경로에서 Just3Lines 제거
+      - name: Copy docker-compose into NCP instance
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{secrets.NCP_HOST}}
+          username: ${{secrets.NCP_USERNAME}}
+          key: ${{secrets.NCP_PRIVATEKEY}}
+          source: "./docker-compose.yml" # Just3Lines/ 제거
+          target: "/home/${{secrets.NCP_USERNAME}}"
+          # strip_components: 1 # source가 파일 하나이므로 이 옵션은 의미가 없음
+          overwrite: true
+          debug: true
+
+      - name: Deploy to NCP Instance
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{secrets.NCP_HOST}}
+          username: ${{secrets.NCP_USERNAME}}
+          key: ${{secrets.NCP_PRIVATEKEY}}
+          script: |
+            sudo docker login -u ${{ secrets.DOCKERHUB_ID }} -p ${{ secrets.DOCKERHUB_PASSWORD }}
+            sudo docker pull ${{secrets.DOCKERHUB_ID}}/Just3Lines
+            sudo docker rm -f $(docker ps -qa) 2>/dev/null || true
+            cd /home/${{secrets.NCP_USERNAME}}
+            sudo docker-compose up -d
+            sudo docker image prune -f

@@ -5,6 +5,8 @@ services:
     image: santa1234/just3lines:latest
     ports:
       - "8080:8082"
+    env_file:
+      - ./.env
     environment:
       - SPRING_PROFILES_ACTIVE=prod
       - OPENAI_API_KEY=${OPENAI_API_KEY}

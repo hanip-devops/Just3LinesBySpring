@@ -1,6 +1,6 @@
 # 간단한 버전 (GitHub Actions에서 이미 빌드된 경우)
 
-FROM openjdk:17-jre-slim
+FROM eclipse-temurin:17-jre-jammy
 
 # 작업 디렉토리 설정
 WORKDIR /app

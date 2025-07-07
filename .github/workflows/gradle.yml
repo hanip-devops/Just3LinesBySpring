@@ -37,10 +37,10 @@ jobs:
 
       # [수정 3] 불필요한 cd 제거
       - name: Docker image build
-        run: docker build -t ${{secrets.DOCKERHUB_ID}}/Just3Lines .
+        run: docker build -t ${{secrets.DOCKERHUB_ID}}/just3lines .
 
       - name: Docker Hub push
-        run: docker push ${{secrets.DOCKERHUB_ID}}/Just3Lines
+        run: docker push ${{secrets.DOCKERHUB_ID}}/just3lines
 
   deploy:
     runs-on: ubuntu-latest
@@ -72,7 +72,7 @@ jobs:
           key: ${{secrets.NCP_PRIVATEKEY}}
           script: |
             sudo docker login -u ${{ secrets.DOCKERHUB_ID }} -p ${{ secrets.DOCKERHUB_PASSWORD }}
-            sudo docker pull ${{secrets.DOCKERHUB_ID}}/Just3Lines
+            sudo docker pull ${{secrets.DOCKERHUB_ID}}/just3lines
             sudo docker rm -f $(docker ps -qa) 2>/dev/null || true
             cd /home/${{secrets.NCP_USERNAME}}
             sudo docker-compose up -d
